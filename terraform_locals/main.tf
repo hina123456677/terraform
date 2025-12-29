@@ -15,15 +15,11 @@ locals {
   ssh_port    = 22
   http_port   = 80
 
-  # Egress rules
-  egress_rules = [
-    {
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  ]
+  # Egress rule (single, fixed)
+  egress_from_port = 0
+  egress_to_port   = 0
+  egress_protocol  = "-1"
+  egress_cidr      = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group" "apache_sg" {
@@ -46,14 +42,11 @@ resource "aws_security_group" "apache_sg" {
     cidr_blocks = local.cidr_blocks
   }
 
-  dynamic "egress" {
-    for_each = local.egress_rules
-    content {
-      from_port   = egress.value.from_port
-      to_port     = egress.value.to_port
-      protocol    = egress.value.protocol
-      cidr_blocks = egress.value.cidr_blocks
-    }
+  egress {
+    from_port   = local.egress_from_port
+    to_port     = local.egress_to_port
+    protocol    = local.egress_protocol
+    cidr_blocks = local.egress_cidr
   }
 
   tags = {
@@ -62,9 +55,9 @@ resource "aws_security_group" "apache_sg" {
 }
 
 resource "aws_instance" "apache_server" {
-  ami           = local.ami_id
-  instance_type = local.instance_type
-  key_name      = local.key_name
+  ami             = local.ami_id
+  instance_type   = local.instance_type
+  key_name        = local.key_name
   security_groups = [aws_security_group.apache_sg.name]
 
   tags = {
@@ -76,3 +69,4 @@ output "ec2_public_ip" {
   value       = aws_instance.apache_server.public_ip
   description = "Public IP of Apache server"
 }
+ 
