@@ -22,14 +22,12 @@ resource "aws_security_group" "apache_sg" {
     cidr_blocks = var.cidr_blocks
   }
 
-  dynamic "egress" {
-    for_each = var.egress_rules
-    content {
-      from_port   = egress.value.from_port
-      to_port     = egress.value.to_port
-      protocol    = egress.value.protocol
-      cidr_blocks = egress.value.cidr_blocks
-    }
+  # Single static egress rule
+  egress {
+    from_port   = var.egress_port
+    to_port     = var.egress_port
+    protocol    = var.egress_protocol
+    cidr_blocks = var.cidr_blocks
   }
 
   tags = {
@@ -39,16 +37,17 @@ resource "aws_security_group" "apache_sg" {
 
 resource "aws_instance" "apache_server" {
   ami           = var.ami_id
+  count         = var.instance_count
   instance_type = var.instance_type
   key_name      = var.key_name
-  security_groups = [aws_security_group.apache_sg.name]
+  vpc_security_group_ids = [aws_security_group.apache_sg.id]
 
   tags = {
-    Name = "Terraform-Apache-AmazonLinux"
+     Name = "Terraform-Apache-${count.index}"
   }
 }
 
 output "ec2_public_ip" {
-  value       = aws_instance.apache_server.public_ip
-  description = "Public IP of Apache server"
+  value       = aws_instance.apache_server[*].public_ip
+  description = "Public IPs of Apache servers"
 }

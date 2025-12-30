@@ -6,6 +6,7 @@ locals {
   # General configuration
   region        = "us-east-1"
   ami_id        = "ami-0b5eea76982371e91"
+  instance_count = 2
   instance_type = "t2.micro"
   key_name      = "my-ec2-key"
 
@@ -16,10 +17,8 @@ locals {
   http_port   = 80
 
   # Egress rule (single, fixed)
-  egress_from_port = 0
-  egress_to_port   = 0
+  egress_port = 0
   egress_protocol  = "-1"
-  egress_cidr      = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group" "apache_sg" {
@@ -43,10 +42,10 @@ resource "aws_security_group" "apache_sg" {
   }
 
   egress {
-    from_port   = local.egress_from_port
-    to_port     = local.egress_to_port
+    from_port   = local.egress_port
+    to_port     = local.egress_port
     protocol    = local.egress_protocol
-    cidr_blocks = local.egress_cidr
+    cidr_blocks = local.cidr_blocks
   }
 
   tags = {
@@ -56,17 +55,18 @@ resource "aws_security_group" "apache_sg" {
 
 resource "aws_instance" "apache_server" {
   ami             = local.ami_id
+  count           = local.instance_count
   instance_type   = local.instance_type
   key_name        = local.key_name
   security_groups = [aws_security_group.apache_sg.name]
 
   tags = {
-    Name = "Terraform-Apache-AmazonLinux"
+    Name = "Terraform-Apache-AmazonLinux-${count.index}"
   }
 }
 
 output "ec2_public_ip" {
-  value       = aws_instance.apache_server.public_ip
+  value       = aws_instance.apache_server[*].public_ip
   description = "Public IP of Apache server"
 }
  
