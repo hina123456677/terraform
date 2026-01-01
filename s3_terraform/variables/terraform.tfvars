@@ -1,0 +1,1 @@
+bucket_name = "hina-variable-s3-123"
