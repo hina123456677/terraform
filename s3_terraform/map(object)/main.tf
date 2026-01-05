@@ -6,12 +6,19 @@ resource "aws_s3_bucket" "my_bucket" {
   for_each = var.s3_buckets
 
   bucket = each.value.bucket_name
-  acl    = "private"
+  acl    = each.value.acl
 
   tags = {
     Name        = each.key
     Environment = each.value.environment
   }
+  lifecycle {
+    ignore_changes = [
+      tags
+    ]
+    prevent_destroy = true
+  }
+
 }
 
 resource "aws_s3_bucket_versioning" "versioning" {
@@ -32,8 +39,11 @@ resource "aws_s3_bucket_public_access_block" "block_public_access" {
 
   bucket = each.value.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+   # Look up from the variable, not from the bucket resource
+  block_public_acls       = var.s3_buckets[each.key].block_public.block_public_acls
+  block_public_policy     = var.s3_buckets[each.key].block_public.block_public_policy
+  ignore_public_acls      = var.s3_buckets[each.key].block_public.ignore_public_acls
+  restrict_public_buckets = var.s3_buckets[each.key].block_public.restrict_public_buckets
+
 }
+
